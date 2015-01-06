@@ -1,0 +1,15 @@
+<TrainingData>
+<path>C:\Users\Peihong\Desktop\Data\Detection\lfpw\trainset\</path>
+<prefix>image_</prefix>
+<imgext>.png</imgext>
+<ptsext>.pts</ptsext>
+<digits>4</digits>
+<pointcount>68</pointcount>
+<imagecount>871</imagecount>
+<ModelParameters>
+<windowsize>256</windowsize>
+<T description="number of stages">5</T>
+<N description="number of trees per stage">1200</N>
+<D description="depth of decision trees">7</D>
+</ModelParameters>
+</TrainingData>

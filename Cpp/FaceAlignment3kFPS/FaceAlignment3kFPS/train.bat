@@ -1,0 +1,1 @@
+..\x64\Debug\FaceAlignment3kFPS -train %CD%\trainsettings.xml -output model.bin
