@@ -2,6 +2,7 @@
 
 #include "extras/tinyxml2/tinyxml2.h"
 
+#include "facedetector.h"
 #include "utils.h"
 
 bool LBFModel::train(const string &settingsfile)
@@ -14,6 +15,7 @@ bool LBFModel::train(const string &settingsfile)
   TrainingSample samples = generateTrainingSamples(inputimages);
 
   // train the model with samples and input images
+  trainModel(inputimages, samples);
 
   return true;
 }
@@ -77,18 +79,107 @@ vector<ImageData> LBFModel::loadInputImages(const map<string, string> &configs) 
   return data;
 }
 
-TrainingSample generateTrainingSamples(const vector<ImageData> &inputimages) {
+TrainingSample LBFModel::generateTrainingSamples(vector<ImageData> &inputimages) {
   // find out valid input images
-  vector<int> validimages;
-  validimages.reserve(inputimages.size());
+  vector<pair<int, FaceDetector::BoundingBox>> validSamples;
+  validSamples.reserve(inputimages.size());
 
   // perform face detection to get the bounding boxes
+  const double CUTOFF = 0.75;
+  for (int imgidx = 0; imgidx < inputimages.size();++imgidx) {
+    auto &img = inputimages[imgidx];
+    auto boxes = FaceDetector::detectFace(img.img);
 
+    // test if the box is valid
+    for (auto &box : boxes) {
+      int count = 0;
+      for (int pidx = 0; pidx < img.pts.n_elem/2; ++pidx) {
+        double x = img.pts(pidx * 2), y = img.pts(pidx * 2 + 1);
+        if (box.isInside(x, y)) ++count;
+      }
+      double perc = (double)count / (double)(img.pts.n_elem / 2);
+      if (perc > CUTOFF) {
+        validSamples.push_back(make_pair(imgidx, box));
+        break;
+      }
+    }
+  }
+
+  cout << "Total number of valid input images = " << validSamples.size() << endl;
+
+  // scale the valid samples properly
+  const int wsize = params.window_size;
+  for (int i = 0; i < validSamples.size(); ++i) {
+    auto sample = validSamples[i];
+    int idx = sample.first;
+    auto box = sample.second;
+    // scale the image 
+    double bsize = box.size();
+    double scale = wsize/bsize;
+    cv::Mat regimg;
+    /// resize the cutout image
+    cv::resize(inputimages[idx].img, regimg, Size(0, 0), scale, scale);
+    inputimages[idx].img = regimg;
+    inputimages[idx].pts *= scale;
+  }
 
   // generate training samples
-  TrainingSample samples;
+  const int oversamples = 20;
+  int N = oversamples * validSamples.size();
+  int Lfp = inputimages.front().pts.n_elem;
 
+  TrainingSample samples;
+  samples.imgidx.resize(N);
+  samples.truth.resize(N, Lfp);
+  samples.guess.resize(N, Lfp);
+
+  std::random_device rd;
+  std::default_random_engine e1(rd());
+  std::uniform_int_distribution<int> uniform_dist(0, validSamples.size());
+
+  for (int i = 0, sidx = 0; i < validSamples.size(); ++i) {
+    // create random samples
+    for (int j = 0; j < oversamples; ++j, ++sidx) {
+      auto sample = validSamples[uniform_dist(e1)];
+      int idx = sample.first;
+      auto box = sample.second;
+      
+      samples.imgidx[sidx] = idx;
+      samples.truth.row(sidx) = inputimages[validSamples[i].first].pts;
+      samples.guess.row(sidx) = inputimages[idx].pts;
+    }
+  }
   return samples;
+}
+
+void LBFModel::trainModel(vector<ImageData> &imgdata, TrainingSample &samples)
+{
+  int Lfp = imgdata.front().pts.n_elem;
+  int Nfp = Lfp / 2;
+
+  // compute a meanshape as reference shape
+  // aram::vec meanshape = mean(samples.truth);
+
+  for (int t = 0; t < params.T; ++t) {
+    // find local binary features for each landmark
+
+    // vector<vector<DecisionTree>> lbfs;
+    for (int l = 0; l < Nfp; ++l) {
+      // sample 500 locations around each landmark, the range of sampling is determined by cross-validation
+      // i.e. for 10 discrete radius, the trees are grown and then applied on the validation set. 
+      // the radius can be 0.25, 0.225, 0.20, 0.175, 0.15, 0.125, 0.10, 0.075, 0.05, 0.025. (normalized by the distance between pupils)
+
+      // grow N trees for this landmark, and compute the the local binary feature
+      
+      //vector<DecisionTree> trees = growTrees(imgdata, samples, meanshape, locations);
+
+      //lbfs.push_back(trees);
+    }
+
+    // global linear regression on the training data using lbfs
+
+    // update the guess shapes
+  }
 }
 
 bool LBFModel::batch_test(const string &settingsfile)

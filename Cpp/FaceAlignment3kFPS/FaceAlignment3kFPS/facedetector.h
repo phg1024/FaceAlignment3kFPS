@@ -14,6 +14,13 @@ class FaceDetector
 {
 public:
   struct BoundingBox {
+    double size() const {
+      return lr.x - ul.x;
+    }
+    bool isInside(double x, double y) const {
+      if (x < ul.x || x > lr.x || y < ul.y || y > lr.y) return false;
+      return true;
+    }
     CvPoint ul, lr;
   };
 

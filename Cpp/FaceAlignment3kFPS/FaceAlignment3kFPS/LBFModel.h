@@ -16,9 +16,9 @@ struct ImageData {
 };
 
 struct TrainingSample {
-  vector<int> imgidx; // index vector of the training samples
-  arma::mat truth;
-  arma::mat guess;
+  vector<int> imgidx; // index vector of the training samples, N
+  arma::mat truth;    // N x Lfp matrix
+  arma::mat guess;    // N x Lfp matrix
 };
 
 class LBFModel
@@ -38,6 +38,8 @@ public:
 private:
   map<string, string> readSettingFile(const string &filename);
   vector<ImageData> loadInputImages(const map<string, string> &configs);
+  TrainingSample generateTrainingSamples(vector<ImageData> &inputimages);
+  void trainModel(vector<ImageData> &imgdata, TrainingSample &samples);
 
 private:
   struct ModelParameters {
@@ -53,5 +55,23 @@ private:
       cout << "D = " << D << endl;
     }
   } params;
+
+  // the model
+
+  // the trees
+  typedef cv::DecisionTree tree_t;
+  struct PixelOffset {
+    double x, y;
+  };
+  struct LandmarkMappingFunction {
+    vector<PixelOffset> pixelOffsets; // pixel offsets w.r.t. the landmark in mean shape
+    vector<tree_t> tree;
+  };
+  typedef vector<LandmarkMappingFunction> MappingFunction;
+  struct Stage {
+    MappingFunction phi;  // feature mapping function
+    arma::mat W;          // weighting matrix
+  };
+  vector<MappingFunction> stages;
 };
 
