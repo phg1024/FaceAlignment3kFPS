@@ -156,6 +156,7 @@ void LBFModel::trainModel(vector<ImageData> &imgdata, TrainingSample &samples)
 {
   int Lfp = imgdata.front().pts.n_elem;
   int Nfp = Lfp / 2;
+  int nsamples = samples.guess.n_rows;
 
   // compute a meanshape as reference shape
   arma::vec meanshape = mean(samples.truth);
@@ -165,30 +166,42 @@ void LBFModel::trainModel(vector<ImageData> &imgdata, TrainingSample &samples)
 
   for (int t = 0; t < params.T; ++t) {
     // compute the transformation from guess shape to the meanshape
-    
+    vector<arma::mat22> M(nsamples);
+    vector<arma::mat22> invM(nsamples);
+    for (int i = 0; i < nsamples; ++i) {
+      M[i] = Transform::estimateSimilarityTransform(samples.guess.row(i), meanshape);
+      invM[i] = arma::inv(M[i]).eval();
+    }
+
+    // compute the deltashape
+    arma::mat deltashape = samples.truth - samples.guess;
 
     // find local binary features for each landmark
     MappingFunction phi;
     for (int l = 0; l < Nfp; ++l) {
+      LandmarkMappingFunction lbf;
+
       // sample 500 locations around each landmark in the meanshape space, the range of sampling is determined by cross-validation
       // i.e. for 10 discrete radius, the trees are grown and then applied on the validation set. 
       // the radius can be 0.25, 0.225, 0.20, 0.175, 0.15, 0.125, 0.10, 0.075, 0.05, 0.025. (normalized by the distance between pupils)
 
       double radius[] = { 0.25, 0.225, 0.20, 0.175, 0.15, 0.125, 0.10, 0.075, 0.05, 0.025 };
 
-      const int Nsamples = 500;
+      const int Nlocations = params.Npixels;
       double radius_t = radius[t];
       // sample the locations
-      arma::mat locations = arma::randn(500, 2);
-      locations *= (radius_t * ref_dist);
+      lbf.locations = arma::randn(500, 2);
+      lbf.locations *= (radius_t * ref_dist);
       
       // get the pixel values by transforming back to the image space
+      arma::mat pixels(nsamples, Nlocations);
+      // XXX
+
+      arma::mat ds = deltashape.cols(l * 2, l * 2 + 1);
 
       // grow N trees for this landmark, and compute the the local binary feature
-      
-      //vector<DecisionTree> trees = growTrees(imgdata, samples, meanshape, locations);
-
-      LandmarkMappingFunction lbf;
+      lbf.forest.init(params.N, params.D, params.Ndims, 0.05);
+      lbf.forest.train(pixels, ds);
 
       phi.push_back(lbf);
     }

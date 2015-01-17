@@ -13,6 +13,7 @@
 #include <string>
 #include <random>
 #include <memory>
+#include <assert.h>
 
 
 using namespace std;

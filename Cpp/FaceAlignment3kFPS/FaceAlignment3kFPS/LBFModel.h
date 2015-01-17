@@ -6,6 +6,7 @@
 #include "regressiontree.hpp"
 #include "regressionforest.hpp"
 #include "utils.h"
+#include "transformations.h"
 
 #include "opencv2/highgui/highgui.hpp"
 using namespace cv;
@@ -15,7 +16,7 @@ struct ImageData {
   bool loadPoints(const string &filename);
   cv::Mat img;  // resized grayscale image for training
   cv::Mat original;
-  arma::vec pts;  // rescaled points
+  arma::vec pts;  // rescaled points, x1 y1 x2 y2 ... xn yn
 };
 
 struct TrainingSample {
@@ -46,10 +47,14 @@ private:
 
 private:
   struct ModelParameters {
+    ModelParameters() :Ndims(500), Npixels(400){}
+
     int window_size;
     int T;  // number of stages
     int N;  // number of trees per stage
     int D;  // depth of decision trees
+    int Ndims;
+    int Npixels;
 
     void print() {
       cout << "window size = " << window_size << endl;      
@@ -68,7 +73,7 @@ private:
     double x, y;
   };
   struct LandmarkMappingFunction {
-    vector<PixelOffset> pixelOffsets; // pixel offsets w.r.t. the landmark in mean shape
+    arma::mat locations; // pixel offsets w.r.t. the landmark in mean shape
     forest_t forest;
   };
   typedef vector<LandmarkMappingFunction> MappingFunction;
