@@ -158,25 +158,48 @@ void LBFModel::trainModel(vector<ImageData> &imgdata, TrainingSample &samples)
   int Nfp = Lfp / 2;
 
   // compute a meanshape as reference shape
-  // aram::vec meanshape = mean(samples.truth);
+  arma::vec meanshape = mean(samples.truth);
+  arma::vec2 leftPupil = extractPoint(meanshape, 37) + extractPoint(meanshape, 38) + extractPoint(meanshape, 40) + extractPoint(meanshape, 41);
+  arma::vec2 rightPupil = extractPoint(meanshape, 43) + extractPoint(meanshape, 44) + extractPoint(meanshape, 46) + extractPoint(meanshape, 47);
+  double ref_dist = norm(leftPupil - rightPupil);
 
   for (int t = 0; t < params.T; ++t) {
-    // find local binary features for each landmark
+    // compute the transformation from guess shape to the meanshape
+    
 
-    // vector<vector<DecisionTree>> lbfs;
+    // find local binary features for each landmark
+    MappingFunction phi;
     for (int l = 0; l < Nfp; ++l) {
-      // sample 500 locations around each landmark, the range of sampling is determined by cross-validation
+      // sample 500 locations around each landmark in the meanshape space, the range of sampling is determined by cross-validation
       // i.e. for 10 discrete radius, the trees are grown and then applied on the validation set. 
       // the radius can be 0.25, 0.225, 0.20, 0.175, 0.15, 0.125, 0.10, 0.075, 0.05, 0.025. (normalized by the distance between pupils)
+
+      double radius[] = { 0.25, 0.225, 0.20, 0.175, 0.15, 0.125, 0.10, 0.075, 0.05, 0.025 };
+
+      const int Nsamples = 500;
+      double radius_t = radius[t];
+      // sample the locations
+      arma::mat locations = arma::randn(500, 2);
+      locations *= (radius_t * ref_dist);
+      
+      // get the pixel values by transforming back to the image space
 
       // grow N trees for this landmark, and compute the the local binary feature
       
       //vector<DecisionTree> trees = growTrees(imgdata, samples, meanshape, locations);
 
-      //lbfs.push_back(trees);
+      LandmarkMappingFunction lbf;
+
+      phi.push_back(lbf);
     }
 
-    // global linear regression on the training data using lbfs
+    // global linear regression on the training data using LBFs
+    
+    // collect the feature vectors
+    
+    // deltaS matrix
+
+    // linear regression with regularization
 
     // update the guess shapes
   }

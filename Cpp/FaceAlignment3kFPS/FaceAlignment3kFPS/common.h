@@ -12,6 +12,7 @@
 #include <unordered_set>
 #include <string>
 #include <random>
+#include <memory>
 
 
 using namespace std;

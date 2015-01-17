@@ -3,6 +3,9 @@
 #include "common.h"
 
 #include "numerical.hpp"
+#include "regressiontree.hpp"
+#include "regressionforest.hpp"
+#include "utils.h"
 
 #include "opencv2/highgui/highgui.hpp"
 using namespace cv;
@@ -59,13 +62,14 @@ private:
   // the model
 
   // the trees
-  typedef cv::DecisionTree tree_t;
+  typedef RegressionTree<> tree_t;
+  typedef RegressionForest<tree_t> forest_t;
   struct PixelOffset {
     double x, y;
   };
   struct LandmarkMappingFunction {
     vector<PixelOffset> pixelOffsets; // pixel offsets w.r.t. the landmark in mean shape
-    vector<tree_t> tree;
+    forest_t forest;
   };
   typedef vector<LandmarkMappingFunction> MappingFunction;
   struct Stage {
