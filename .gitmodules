@@ -7,3 +7,6 @@
 [submodule "extras/Catch"]
 	path = extras/Catch
 	url = https://github.com/philsquared/Catch.git
+[submodule "extras/liblinear"]
+	path = extras/liblinear
+	url = https://github.com/cjlin1/liblinear.git
