@@ -1,3 +1,6 @@
 [submodule "extras/json"]
 	path = extras/json
 	url = https://github.com/nlohmann/json.git
+[submodule "extras/tinyxml2"]
+	path = extras/tinyxml2
+	url = https://github.com/leethomason/tinyxml2
