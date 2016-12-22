@@ -103,3 +103,4 @@ target_link_libraries(FaceAlignment3kFPS
 add_subdirectory(tests)
 add_subdirectory(extras/libface)
 add_subdirectory(extras/tinyxml2)
+add_subdirectory(extras/liblinear)
