@@ -1,0 +1,22 @@
+This is a face recognition library. Merged to the libface and re written from scratch.
+
+After some testing it responds to about +-50 in lit variation and only +-6
+degrees in rotation. Hope is Fisher face will make it better.
+
+To install run:
+mkdir build
+cd build
+cmake -DCMAKE_INSTALL_PREFIX=/usr ..
+make
+make install
+
+This will attempt to build the library and install in /usr/lib and /usr/include/libface,
+or if you have a 64bit system, it will attempt to install into lib64.
+
+You need at least OpenCV 2.1 that includes the file FindOpenCV.cmake, for Debian.
+
+An example of use of libface library can be found in examples directory.
+
+Compile programs that use libface with the linking option -lface
+
+NOTE: As of June 2010, Mandriva ships opencv split into multiple packages. You MUST install the opencv-samples package.

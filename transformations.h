@@ -5,39 +5,44 @@
 
 namespace Transform {
   // similarity transformation matrix from p to q
-  static arma::mat22 estimateSimilarityTransform(const arma::vec &p, const arma::vec &q) {
-    assert(p.n_elem == q.n_elem);
+  static Eigen::Matrix2d estimateSimilarityTransform(const Eigen::VectorXd &p, const Eigen::VectorXd &q) {
+    assert(p.rows() == q.rows());
 
-    int n = p.n_elem / 2;
+    int n = p.rows() / 2;
     assert(n>0);
     const int m = 2;
 
     //cout << "n = " << n << endl;
 
-    mat pmat = p, qmat = q;
-    pmat.reshape(2, n);
-    pmat = trans(pmat);
-    qmat.reshape(2, n);
-    qmat = trans(qmat);
+    Eigen::Map<const Eigen::MatrixXd> pmatT(p.data(), 2, n);
+    Eigen::Map<const Eigen::MatrixXd> qmatT(q.data(), 2, n);
 
-    mat mu_p = mean(pmat);
-    mat mu_q = mean(qmat);
+    Eigen::MatrixXd pmat = pmatT.transpose();
+    Eigen::MatrixXd qmat = qmatT.transpose();
 
-    mat dp = pmat - repmat(mu_p, n, 1);
-    mat dq = qmat - repmat(mu_q, n, 1);
+    Eigen::MatrixXd mu_p = pmat.colwise().mean();
+    Eigen::MatrixXd mu_q = qmat.colwise().mean();
 
-    double sig_p2 = sum(sum(dp % dp)) / n;
-    double sig_q2 = sum(sum(dq % dq)) / n;
+    Eigen::MatrixXd dp = pmat - mu_p.replicate(n, 1);
+    Eigen::MatrixXd dq = qmat - mu_q.replicate(n, 1);
 
-    mat sig_pq = trans(dq) * dp / n;
+    double sig_p2 = dp.squaredNorm() / n;
+    double sig_q2 = dq.squaredNorm() / n;
 
-    double det_sig_pq = det(sig_pq);
-    mat S = eye(m, m);
+    Eigen::MatrixXd sig_pq = dq.transpose() * dp / n;
+
+    double det_sig_pq = sig_pq.determinant();
+    Eigen::MatrixXd S = Eigen::MatrixXd::Identity(m, m);
     if (det_sig_pq < 0) S(m - 1, m - 1) = -1;
 
-    mat U, V;
-    vec D;
-    svd(U, D, V, sig_pq);
+    Eigen::MatrixXd U, V;
+    Eigen::VectorXd D;
+
+    Eigen::JacobiSVD<Eigen::MatrixXd> svd(sig_pq);
+
+    D = svd.singularValues();
+    U = svd.matrixU();
+    V = svd.matrixV();
 
     /*
     cout << U << endl;
@@ -45,21 +50,21 @@ namespace Transform {
     cout << V << endl;
     */
 
-    mat R = U * S * trans(V);
+    Eigen::MatrixXd R = U * S * V.transpose();
     //cout << R << endl;
-    double s = trace(diagmat(D) * S) / sig_p2;
-    vec t = trans(mu_q) - s * R * trans(mu_p);
+    double s = (Eigen::Matrix2d::Identity() * D * S).trace() / sig_p2;
+
+    Eigen::VectorXd t = mu_q.transpose() - s * R * mu_p.transpose();
 
     R = R * s;
     return R;
   }
 
-  static arma::vec transformShape(const arma::vec &shape, const arma::mat22 &M) {
-    int n = shape.n_elem / 2;
-    mat smat = shape;
-    smat.reshape(2, n);
-    mat tsmat = M * smat;
-    arma::vec res = reshape(tsmat, 1, shape.n_elem);
+  static Eigen::VectorXd transformShape(const Eigen::VectorXd &shape, const Eigen::Matrix2d &M) {
+    int n = shape.rows() / 2;
+    Eigen::MatrixXd smat = Eigen::Map<const Eigen::MatrixXd>(shape.data(), 2, n);
+    Eigen::MatrixXd tsmat = M * smat;
+    Eigen::VectorXd res = Eigen::Map<Eigen::VectorXd>(tsmat.data(), shape.rows(), 1);
     return res;
   }
 }

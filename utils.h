@@ -19,8 +19,6 @@ string toString(T val) {
   return ss.str();
 }
 
-inline arma::vec2 extractPoint(const arma::vec &v, int idx) {
-  arma::vec2 p;
-  p.at(1) = v(idx * 2); p.at(2) = v(idx * 2 + 1);
-  return p;
+inline Eigen::Vector2d extractPoint(const Eigen::VectorXd &v, int idx) {
+  return Eigen::Vector2d(v[idx*2], v[idx*2+1]);
 }

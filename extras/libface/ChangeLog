@@ -1,0 +1,56 @@
+---
+10th Jun 2010
+
+libface now supports char* image data, therefore programs can use libface regardless of the imaging API they use.
+Finally libface can be considered "ready to use" 
+---
+
+---
+19th May 2010:
+Eigenfaces Implementation is finally nicely working. The "temp" file has now been removed from the example.
+Face detection now stores the face images in the face object, too!
+Therefore, now there's no need for Eigenfaces::update() to extract faces from an image.
+A Face vector is enough for update()
+The DB size is kept as 50.
+An single update() call to update a null database to 150 faces takes 4 seconds on Aditya's *weak* machine.
+Therefore, one may assume that retraining a database takes about 1 second.
+The example can now take multiple image files as argument.
+This makes it possible to pass HUGE Face vectors to update.
+
+---
+31st Mar 2010:
+
+Clustering in detection works good now. False positives reduced/removed.
+
+---
+30th Mar 2010:
+
+Haarcascades class has been implemented, finally. Now, as many cascades as required can be used by just adding one more line of code.
+In my database, every single face was detected after this approach. To increase the speed, decrease the pixel-area for the "working image".
+Image scaling for faster computation is now done in FaceDetect.cpp, and not in a client program. The vector of Face objects contains faces that have their dimensions 
+set for the original image, so no worries for the end-user.
+
+25th Mar 2010
+Compile with -DCMAKE_BUILD_TYPE=Debug for DEBUG mode to work. Made Eigenface pipeline 
+to work. Needs testing on bigger datasets.
+
+---
+19th Mar 2010:
+
+Polished some bits and bobs. Fixed a bug and updated general project info.
+
+---
+17th Mar 2010:
+
+Added an example FaceDetection.cpp for testing detection.
+Changed the libface constructor to allow for individual options like DETECT, EIGEN, and FISHER.
+Changed the minimum face size for detection to a more permissive value.
+
+---
+
+---
+16th Mar 2010:
+
+Added two new files: haarcascades.h and haarcascades.cpp to allow for easy usage of multiple, weighted cascades for better results.
+
+---

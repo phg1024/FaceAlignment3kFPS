@@ -1,0 +1,23 @@
+0.1 is officially released. Work on 0.2 already started!
+
+New build file for examples. They are automatically built if -DBUILD_EXAMPLES=1 set when 
+running cmake.
+
+The clustering in face detection works *perfect* now. All faces are detected in my database.
+A "genuineness" has been assigned to each face, which is the number of duplicate detections that face had.
+We can remove faces that have less than a fixed number of duplicates.
+This threshold has been kept tunable for future optimizations, though the need for tweaking this is unlikely.
+From now on, it might be okay if no code is written for improving face detection accuracy, I think tuning these parameters is enough.
+
+Now, Face Detection works for every non-microscopic frontal face, period.
+Detecting non-frontal faces is now a trivial task of adding one more line :
+cascadeSet->addCascade("profile-blah-blah.xml");
+
+We have face detection with Haar features to work. I think this is 
+indeed a milestone for the project and should be celebrated. Well
+done to everyone that got involved this far.
+
+Next will be refining Face Recognition :) 
+
+Eigenfaces should be working now. Althought this needs testing. Don't
+know how good it is. But it works :)

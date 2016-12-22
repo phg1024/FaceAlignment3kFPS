@@ -1,0 +1,15 @@
+Here are some simple examples of use of libface. 
+
+If you specify -DBUILD_EXAMPLES=1 when running cmake then examples will be automatically
+built.
+
+
+Otherwise, to compile run:
+
+g++ -I /usr/local/include -o FaceDetectionExample FaceDetection.cpp -L /usr/local/lib -lface -lhighgui -lcv -lcxcore -lcvaux
+
+OR on OS X:
+
+g++-4.0 -I /usr/local/include -o FaceDetectionExample FaceDetection.cpp -L /usr/local/lib -lface -lhighgui -lcv -lcxcore -lcvaux
+
+This assumes you installed everything in /usr/local. N.B. might have to change lib to lib64.

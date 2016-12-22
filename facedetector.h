@@ -5,8 +5,8 @@
 #include "opencv2/opencv.hpp"
 #include "opencv2/highgui/highgui.hpp"
 
-#include "LibFace.h"
-#include "Face.h"
+#include "extras/libface/src/LibFace.h"
+#include "extras/libface/src/Face.h"
 
 using namespace libface;
 

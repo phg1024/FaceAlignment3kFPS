@@ -7,7 +7,7 @@ struct RegressionTreeNode {
   vector<int> samples;
   int m, n;
   double splitVal;
-  arma::vec2 output;
+  Eigen::Vector2d output;
 
   bool isLeaf() const {
     return lchild == nullptr && rchild == nullptr;
@@ -15,7 +15,7 @@ struct RegressionTreeNode {
   shared_ptr<RegressionTreeNode> lchild, rchild;
 };
 
-template <typename InputType=arma::vec, typename OutputType=arma::vec2, typename NodeType=RegressionTreeNode>
+template <typename InputType=Eigen::VectorXd, typename OutputType=Eigen::Vector2d, typename NodeType=RegressionTreeNode>
 class RegressionTree {
 public:
   typedef InputType input_t;
@@ -26,14 +26,14 @@ public:
   RegressionTree(int N, int D, double threshold) :ndims(N), maxDepth(D){}
 
 
-  void train(const arma::mat &pixels, const arma::mat &ds);
+  void train(const Eigen::MatrixXd &pixels, const Eigen::MatrixXd &ds);
   OutputType predict(const InputType &sample);
   vector<bool> localBinaryFeature(const InputType &sample);
 
 protected:
-  shared_ptr<NodeType> trainSubTree(const vector<int> &samples, const arma::mat &pixels, const arma::mat &ds);
-  pair<double, double> findBestSplittingPoint(const vector<int> &samples, int m, int n, const arma::mat &pixels, const arma::mat &ds);
-  bool stopSplitting(const vector<int> &samples, const arma::mat &pixels, const arma::mat &ds, arma::vec2 &meanval);
+  shared_ptr<NodeType> trainSubTree(const vector<int> &samples, const Eigen::MatrixXd &pixels, const Eigen::MatrixXd &ds);
+  pair<double, double> findBestSplittingPoint(const vector<int> &samples, int m, int n, const Eigen::MatrixXd &pixels, const Eigen::MatrixXd &ds);
+  bool stopSplitting(const vector<int> &samples, const Eigen::MatrixXd &pixels, const Eigen::MatrixXd &ds, Eigen::Vector2d &meanval);
 
 private:
   int ndims;
@@ -42,8 +42,8 @@ private:
   shared_ptr<NodeType> root;
 };
 
-template <typename InputType/*=arma::vec*/, typename OutputType/*=arma::vec2*/, typename NodeType/*=RegressionTreeNode*/>
-bool RegressionTree<InputType, OutputType, NodeType>::stopSplitting(const vector<int> &samples, const arma::mat &pixels, const arma::mat &ds, arma::vec2 &meanval)
+template <typename InputType, typename OutputType, typename NodeType>
+bool RegressionTree<InputType, OutputType, NodeType>::stopSplitting(const vector<int> &samples, const Eigen::MatrixXd &pixels, const Eigen::MatrixXd &ds, Eigen::Vector2d &meanval)
 {
   assert(samples.size() >= 1);
   if (samples.size() == 1) return true;
@@ -56,15 +56,15 @@ bool RegressionTree<InputType, OutputType, NodeType>::stopSplitting(const vector
 
     double errval = 0;
     for (int i = 0; i < samples.size(); ++i) {
-      arma::vec2 diff = ds.row(samples[i]) - meanval;
-      errval += norm(diff);
+      Eigen::Vector2d diff = Eigen::Vector2d(ds.row(samples[i])) - meanval;
+      errval += diff.norm();
     }
     return errval / samples.size();
   }
 }
 
-template <typename InputType/*=arma::vec*/, typename OutputType/*=arma::vec2*/, typename NodeType/*=RegressionTreeNode*/>
-pair<double, double> RegressionTree<InputType, OutputType, NodeType>::findBestSplittingPoint(const vector<int> &samples, int m, int n, const arma::mat &pixels, const arma::mat &ds)
+template <typename InputType, typename OutputType, typename NodeType>
+pair<double, double> RegressionTree<InputType, OutputType, NodeType>::findBestSplittingPoint(const vector<int> &samples, int m, int n, const Eigen::MatrixXd &pixels, const Eigen::MatrixXd &ds)
 {
   // get all data
   int nsamples = samples.size();
@@ -91,16 +91,16 @@ pair<double, double> RegressionTree<InputType, OutputType, NodeType>::findBestSp
     rightSum += ds.row(samples[i]);
   }
 
-  auto computeError = [&](int startIdx, int endIdx, const arma::vec2 &meanval) {
+  auto computeError = [&](int startIdx, int endIdx, const Eigen::Vector2d &meanval) {
     double errval = 0;
     for (int i = startIdx; i <= endIdx; ++i) {
-      arma::vec2 diff = ds.row(samples[values[startIdx].idx]) - meanval;
-      errval += norm(diff);
+      Eigen::Vector2d diff = Eigen::Vector2d(ds.row(samples[values[startIdx].idx])) - meanval;
+      errval += diff.norm();
     }
     return errval;
   };
 
-  double best_error = FLT_MAX;
+  double best_error = numeric_limits<double>::max();
   double split_point = 0;
   for (int i = 0; i < nsamples-1; ++i) {
     leftSum += ds.row(i);
@@ -121,11 +121,11 @@ pair<double, double> RegressionTree<InputType, OutputType, NodeType>::findBestSp
   return make_pair(split_point, best_error);
 }
 
-template <typename InputType/*=arma::vec*/, typename OutputType/*=arma::vec2*/, typename NodeType/*=RegressionTreeNode*/>
-shared_ptr<NodeType> RegressionTree<InputType, OutputType, NodeType>::trainSubTree(const vector<int> &samples, const arma::mat &pixels, const arma::mat &ds)
+template <typename InputType, typename OutputType, typename NodeType>
+shared_ptr<NodeType> RegressionTree<InputType, OutputType, NodeType>::trainSubTree(const vector<int> &samples, const Eigen::MatrixXd &pixels, const Eigen::MatrixXd &ds)
 {
   // test if further splitting is necessary
-  arma::vec2 meanval;
+  Eigen::Vector2d meanval;
   if (stopSplitting(samples, pixels, ds, meanval)) {
     // no splitting needed, just create a node here
     shared_ptr<NodeType> node(new NodeType);
@@ -136,7 +136,7 @@ shared_ptr<NodeType> RegressionTree<InputType, OutputType, NodeType>::trainSubTr
   else {
     // get a subset of available dimensions
     std::default_random_engine generator;
-    std::uniform_int_distribution<int> distribution(0, pixels.n_cols-1);
+    std::uniform_int_distribution<int> distribution(0, pixels.cols()-1);
 
     set<pair<int,int>> dims;
     while (dims.size() < ndims) {
@@ -148,7 +148,7 @@ shared_ptr<NodeType> RegressionTree<InputType, OutputType, NodeType>::trainSubTr
     }
 
     // find the best splitting dimension and split value
-    double best_error = FLT_MAX;
+    double best_error = numeric_limits<double>::max();
     double best_split = 0;
     pair<int, int> pix_pair;
     for (auto d : dims) {
@@ -179,16 +179,16 @@ shared_ptr<NodeType> RegressionTree<InputType, OutputType, NodeType>::trainSubTr
   }
 }
 
-template <typename InputType/*=arma::vec*/, typename OutputType/*=arma::vec2*/, typename NodeType/*=RegressionTreeNode*/>
-void RegressionTree<InputType, OutputType, NodeType>::train(const arma::mat &pixels, const arma::mat &ds)
+template <typename InputType, typename OutputType, typename NodeType>
+void RegressionTree<InputType, OutputType, NodeType>::train(const Eigen::MatrixXd &pixels, const Eigen::MatrixXd &ds)
 {
-  int n = pixels.n_rows;
+  int n = pixels.rows();
   vector<int> indices(n);
   for (int i = 0; i < n; ++i) indices[i] = i;
   root = trainSubTree(indices, pixels, ds);
 }
 
-template <typename InputType/*=arma::vec*/, typename OutputType/*=arma::vec2*/, typename NodeType/*=RegressionTreeNode*/>
+template <typename InputType, typename OutputType, typename NodeType>
 OutputType RegressionTree<InputType, OutputType, NodeType>::predict(const InputType &sample)
 {
 

@@ -11,7 +11,7 @@ bool LBFModel::train(const string &settingsfile)
   auto trainingSetParams = readSettingFile(settingsfile);
   vector<ImageData> inputimages = loadInputImages(trainingSetParams);
   cout << "number of input images = " << inputimages.size() << endl;
-  
+
   TrainingSample samples = generateTrainingSamples(inputimages);
 
   // train the model with samples and input images
@@ -93,11 +93,11 @@ TrainingSample LBFModel::generateTrainingSamples(vector<ImageData> &inputimages)
     // test if the box is valid
     for (auto &box : boxes) {
       int count = 0;
-      for (int pidx = 0; pidx < img.pts.n_elem/2; ++pidx) {
+      for (int pidx = 0; pidx < img.pts.rows()/2; ++pidx) {
         double x = img.pts(pidx * 2), y = img.pts(pidx * 2 + 1);
         if (box.isInside(x, y)) ++count;
       }
-      double perc = (double)count / (double)(img.pts.n_elem / 2);
+      double perc = (double)count / (double)(img.pts.rows() / 2);
       if (perc > CUTOFF) {
         validSamples.push_back(make_pair(imgidx, box));
         break;
@@ -113,7 +113,7 @@ TrainingSample LBFModel::generateTrainingSamples(vector<ImageData> &inputimages)
     auto sample = validSamples[i];
     int idx = sample.first;
     auto box = sample.second;
-    // scale the image 
+    // scale the image
     double bsize = box.size();
     double scale = wsize/bsize;
     cv::Mat regimg;
@@ -126,7 +126,7 @@ TrainingSample LBFModel::generateTrainingSamples(vector<ImageData> &inputimages)
   // generate training samples
   const int oversamples = 20;
   int N = oversamples * validSamples.size();
-  int Lfp = inputimages.front().pts.n_elem;
+  int Lfp = inputimages.front().pts.rows();
 
   TrainingSample samples;
   samples.imgidx.resize(N);
@@ -143,7 +143,7 @@ TrainingSample LBFModel::generateTrainingSamples(vector<ImageData> &inputimages)
       auto sample = validSamples[uniform_dist(e1)];
       int idx = sample.first;
       auto box = sample.second;
-      
+
       samples.imgidx[sidx] = idx;
       samples.truth.row(sidx) = inputimages[validSamples[i].first].pts;
       samples.guess.row(sidx) = inputimages[idx].pts;
@@ -154,27 +154,27 @@ TrainingSample LBFModel::generateTrainingSamples(vector<ImageData> &inputimages)
 
 void LBFModel::trainModel(vector<ImageData> &imgdata, TrainingSample &samples)
 {
-  int Lfp = imgdata.front().pts.n_elem;
+  int Lfp = imgdata.front().pts.rows();
   int Nfp = Lfp / 2;
-  int nsamples = samples.guess.n_rows;
+  int nsamples = samples.guess.rows();
 
   // compute a meanshape as reference shape
-  arma::vec meanshape = mean(samples.truth);
-  arma::vec2 leftPupil = extractPoint(meanshape, 37) + extractPoint(meanshape, 38) + extractPoint(meanshape, 40) + extractPoint(meanshape, 41);
-  arma::vec2 rightPupil = extractPoint(meanshape, 43) + extractPoint(meanshape, 44) + extractPoint(meanshape, 46) + extractPoint(meanshape, 47);
-  double ref_dist = norm(leftPupil - rightPupil);
+  Eigen::VectorXd meanshape = samples.truth.colwise().mean();
+  Eigen::Vector2d leftPupil = extractPoint(meanshape, 37) + extractPoint(meanshape, 38) + extractPoint(meanshape, 40) + extractPoint(meanshape, 41);
+  Eigen::Vector2d rightPupil = extractPoint(meanshape, 43) + extractPoint(meanshape, 44) + extractPoint(meanshape, 46) + extractPoint(meanshape, 47);
+  double ref_dist = (leftPupil - rightPupil).norm();
 
   for (int t = 0; t < params.T; ++t) {
     // compute the transformation from guess shape to the meanshape
-    vector<arma::mat22> M(nsamples);
-    vector<arma::mat22> invM(nsamples);
+    vector<Eigen::Matrix2d> M(nsamples);
+    vector<Eigen::Matrix2d> invM(nsamples);
     for (int i = 0; i < nsamples; ++i) {
       M[i] = Transform::estimateSimilarityTransform(samples.guess.row(i), meanshape);
-      invM[i] = arma::inv(M[i]).eval();
+      invM[i] = M[i].inverse();
     }
 
     // compute the deltashape
-    arma::mat deltashape = samples.truth - samples.guess;
+    Eigen::MatrixXd deltashape = samples.truth - samples.guess;
 
     // find local binary features for each landmark
     MappingFunction phi;
@@ -182,7 +182,7 @@ void LBFModel::trainModel(vector<ImageData> &imgdata, TrainingSample &samples)
       LandmarkMappingFunction lbf;
 
       // sample 500 locations around each landmark in the meanshape space, the range of sampling is determined by cross-validation
-      // i.e. for 10 discrete radius, the trees are grown and then applied on the validation set. 
+      // i.e. for 10 discrete radius, the trees are grown and then applied on the validation set.
       // the radius can be 0.25, 0.225, 0.20, 0.175, 0.15, 0.125, 0.10, 0.075, 0.05, 0.025. (normalized by the distance between pupils)
 
       double radius[] = { 0.25, 0.225, 0.20, 0.175, 0.15, 0.125, 0.10, 0.075, 0.05, 0.025 };
@@ -190,14 +190,15 @@ void LBFModel::trainModel(vector<ImageData> &imgdata, TrainingSample &samples)
       const int Nlocations = params.Npixels;
       double radius_t = radius[t];
       // sample the locations
-      lbf.locations = arma::randn(500, 2);
+      // FIXME implement randn
+      //lbf.locations = arma::randn(500, 2);
       lbf.locations *= (radius_t * ref_dist);
-      
+
       // get the pixel values by transforming back to the image space
-      arma::mat pixels(nsamples, Nlocations);
+      Eigen::MatrixXd pixels(nsamples, Nlocations);
       // XXX
 
-      arma::mat ds = deltashape.cols(l * 2, l * 2 + 1);
+      Eigen::MatrixXd ds = deltashape.block(0, l * 2, deltashape.rows(), 2);
 
       // grow N trees for this landmark, and compute the the local binary feature
       lbf.forest.init(params.N, params.D, params.Ndims, 0.05);
@@ -207,9 +208,9 @@ void LBFModel::trainModel(vector<ImageData> &imgdata, TrainingSample &samples)
     }
 
     // global linear regression on the training data using LBFs
-    
+
     // collect the feature vectors
-    
+
     // deltaS matrix
 
     // linear regression with regularization
@@ -277,10 +278,10 @@ bool ImageData::loadPoints(const string &ptsfile)
     string dummy;
     std::getline(f, dummy);
 
-    pts = vec(npoints * 2);
+    pts = Eigen::VectorXd(npoints * 2);
 
     for (int i = 0; i < npoints; ++i) {
-      f >> pts(i * 2) >> pts(i * 2 + 1);
+      f >> pts[i * 2] >> pts[i * 2 + 1];
     }
     f.close();
   }

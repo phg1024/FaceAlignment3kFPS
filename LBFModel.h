@@ -16,13 +16,13 @@ struct ImageData {
   bool loadPoints(const string &filename);
   cv::Mat img;  // resized grayscale image for training
   cv::Mat original;
-  arma::vec pts;  // rescaled points, x1 y1 x2 y2 ... xn yn
+  Eigen::VectorXd pts;  // rescaled points, x1 y1 x2 y2 ... xn yn
 };
 
 struct TrainingSample {
   vector<int> imgidx; // index vector of the training samples, N
-  arma::mat truth;    // N x Lfp matrix
-  arma::mat guess;    // N x Lfp matrix
+  Eigen::MatrixXd truth;    // N x Lfp matrix
+  Eigen::MatrixXd guess;    // N x Lfp matrix
 };
 
 class LBFModel
@@ -32,7 +32,7 @@ public:
   LBFModel(const string &modelfile) { load(modelfile); }
   ~LBFModel(){}
 
-  bool train(const string &settingsfile);  
+  bool train(const string &settingsfile);
   bool test(const string &imagefile);
   bool batch_test(const string &settingsfile);
 
@@ -57,7 +57,7 @@ private:
     int Npixels;
 
     void print() {
-      cout << "window size = " << window_size << endl;      
+      cout << "window size = " << window_size << endl;
       cout << "T = " << T << endl;
       cout << "N = " << N << endl;
       cout << "D = " << D << endl;
@@ -73,14 +73,13 @@ private:
     double x, y;
   };
   struct LandmarkMappingFunction {
-    arma::mat locations; // pixel offsets w.r.t. the landmark in mean shape
+    Eigen::MatrixXd locations; // pixel offsets w.r.t. the landmark in mean shape
     forest_t forest;
   };
   typedef vector<LandmarkMappingFunction> MappingFunction;
   struct Stage {
     MappingFunction phi;  // feature mapping function
-    arma::mat W;          // weighting matrix
+    Eigen::MatrixXd W;          // weighting matrix
   };
   vector<MappingFunction> stages;
 };
-
