@@ -4,3 +4,6 @@
 [submodule "extras/tinyxml2"]
 	path = extras/tinyxml2
 	url = https://github.com/leethomason/tinyxml2.git
+[submodule "extras/Catch"]
+	path = extras/Catch
+	url = https://github.com/philsquared/Catch.git

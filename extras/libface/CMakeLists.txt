@@ -133,8 +133,8 @@ ENDIF(BUILD_EXAMPLES)
 
 # Configure uninstall rules.
 
-CONFIGURE_FILE(cmake/templates/libface_uninstall.cmake ${CMAKE_BINARY_DIR}/cmake_uninstall.cmake COPYONLY)
-ADD_CUSTOM_TARGET(uninstall "${CMAKE_COMMAND}" -P "${CMAKE_BINARY_DIR}/cmake_uninstall.cmake")
+#CONFIGURE_FILE(cmake/templates/libface_uninstall.cmake ${CMAKE_BINARY_DIR}/cmake_uninstall.cmake COPYONLY)
+#ADD_CUSTOM_TARGET(uninstall "${CMAKE_COMMAND}" -P "${CMAKE_BINARY_DIR}/cmake_uninstall.cmake")
 
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/libface.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libface.pc)
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/libface.pc DESTINATION ${LIBDIR}/pkgconfig )
@@ -186,4 +186,3 @@ ENDIF(DOXYGEN_FOUND AND BUILD_DOCUMENTATION)
 
 MESSAGE(STATUS "")
 MESSAGE(STATUS "------------------------------------------------------------")
-

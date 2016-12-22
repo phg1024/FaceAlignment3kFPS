@@ -54,7 +54,7 @@ find_package(Ceres REQUIRED)
 include_directories(${CERES_INCLUDE_DIRS})
 link_libraries(${CERES_LIBRARIES})
 
-add_executable(dummy_test dummy_test.cpp)
+add_executable(test_transformation test_transformation.cpp)
 #target_link_libraries(test_ceres)
 
 link_directories(..)
